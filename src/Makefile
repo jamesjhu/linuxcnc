@@ -394,6 +394,7 @@ SRCHEADERS := \
     emc/tooldata/tooldata.hh \
     hal/hal.h \
     hal/hal_parport.h \
+    hal/drivers/mesa-hostmot2/hostmot2-module.h \
     hal/drivers/mesa-hostmot2/hostmot2-serial.h \
     libnml/buffer/locmem.hh \
     libnml/buffer/memsem.hh \
@@ -1032,6 +1033,7 @@ hostmot2-objs :=			  \
     hal/drivers/mesa-hostmot2/oneshot.o	  \
     hal/drivers/mesa-hostmot2/periodm.o	  \
     hal/drivers/mesa-hostmot2/raw.o	  \
+    hal/drivers/mesa-hostmot2/rawmodule.o \
     hal/drivers/mesa-hostmot2/rcpwmgen.o  \
     hal/drivers/mesa-hostmot2/resolver.o  \
     hal/drivers/mesa-hostmot2/sserial.o   \
