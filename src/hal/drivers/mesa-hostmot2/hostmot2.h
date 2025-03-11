@@ -27,6 +27,7 @@
 #include "sserial.h"
 
 #include "hostmot2-lowlevel.h"
+#include "hostmot2-module.h"
 
 #ifndef FIRMWARE_NAME_MAX
     #define FIRMWARE_NAME_MAX  30
