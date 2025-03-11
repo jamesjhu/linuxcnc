@@ -280,7 +280,7 @@ void hm2_rawmodule_cleanup(hostmot2_t *hm2)
 
 void hm2_rawmodule_print_module(hostmot2_t *hm2)
 {
-    int i,j;
+    int i;
     if (hm2->rawmodule.num_instances <= 0)
         return;
     for (i = 0; i < hm2->rawmodule.num_instances; i++) {
