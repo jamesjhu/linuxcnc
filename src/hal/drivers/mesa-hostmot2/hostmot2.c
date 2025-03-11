@@ -116,6 +116,7 @@ static void hm2_read(void *void_hm2, long period) {
     hm2_absenc_process_tram_read(hm2, period);
     hm2_oneshot_process_tram_read(hm2);
     hm2_periodm_process_tram_read(hm2);
+    hm2_rawmodule_process_tram_read(hm2);
     //UARTS PktUARTS need to be explicitly handled by an external component
 
     hm2_tp_pwmgen_process_read(hm2); // check the status of the fault bit
@@ -148,6 +149,7 @@ static void hm2_write(void *void_hm2, long period) {
     hm2_bspi_prepare_tram_write(hm2, period);
     hm2_ssr_prepare_tram_write(hm2);
     hm2_outm_prepare_tram_write(hm2);
+    hm2_rawmodule_prepare_tram_write(hm2);
 
     //UARTS need to be explicitly handled by an external component
     hm2_tram_write(hm2);
@@ -286,6 +288,20 @@ hm2_sserial_remote_t *hm2_get_sserial(hostmot2_t** hm2, char *name){
         }
     }
     return NULL;
+}
+EXPORT_SYMBOL_GPL(hm2_get_rawreg);
+int hm2_get_rawmodule(hostmot2_t** hm2, char *name){
+    struct rtapi_list_head *ptr;
+    int i;
+    rtapi_list_for_each(ptr, &hm2_list) {
+        *hm2 = rtapi_list_entry(ptr, hostmot2_t, list);
+        if ((*hm2)->rawmodule.num_instances > 0) {
+            for (i = 0; i < (*hm2)->rawmodule.num_instances ; i++) {
+                if (!strcmp((*hm2)->rawmodule.instance[i].name, name)) {return i;}
+            }
+        }
+    }
+    return -1;
 }
 
 
@@ -1085,6 +1101,14 @@ static int hm2_parse_module_descriptors(hostmot2_t *hm2) {
                 break;
 
             default:
+                int i;
+                for (i = 0; i < HM2_MAX_RAWMODULE; i++) {
+                    if (hm2->config.rawmodule_gtags[i] == md->gtag) {
+                        md_accepted = hm2_rawmodule_parse_md(hm2, md_index);
+                        break;
+                    }
+                }
+
                 HM2_WARN(
                     "MD %d: %dx %s v%d: ignored\n",
                     md_index,
@@ -1160,6 +1184,7 @@ static void hm2_cleanup(hostmot2_t *hm2) {
     hm2_oneshot_cleanup(hm2);
     hm2_periodm_cleanup(hm2);
     hm2_rcpwmgen_cleanup(hm2);
+    hm2_rawmodule_cleanup(hm2);
 
     // free all the tram entries
     hm2_tram_cleanup(hm2);
@@ -1187,6 +1212,7 @@ void hm2_print_modules(hostmot2_t *hm2) {
     hm2_inm_print_module(hm2);
     hm2_xy2mod_print_module(hm2);
     hm2_rcpwmgen_print_module(hm2);
+    hm2_rawmodule_print_module(hm2);
 }
 
 

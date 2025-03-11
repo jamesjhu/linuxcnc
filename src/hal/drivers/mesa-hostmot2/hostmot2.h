@@ -1574,6 +1574,31 @@ typedef struct {
 
 } hm2_outm_t;
 
+//
+// raw module access
+//
+
+#define HM2_MAX_RAWMODULE   (16)
+
+typedef struct {
+    rtapi_u8 gtag;
+    rtapi_u8 version;
+    rtapi_u8 instances;
+    rtapi_u32 clock_freq;
+    rtapi_u16 base_address;
+    rtapi_u32 register_stride;
+    rtapi_u32 instance_stride;
+    char name[HAL_NAME_LEN+1];
+    int (*read_function)(void*);
+    int (*write_function)(void*);
+    void *rsubdata;
+    void *wsubdata;
+} hm2_rawmodule_instance_t;
+
+typedef struct {
+    int num_instances;
+    hm2_rawmodule_instance_t *instance;
+} hm2_rawmodule_t;
 
 // 
 // raw peek/poke access
@@ -1641,7 +1666,9 @@ typedef struct {
         int num_outms;
         int num_oneshots;
         int num_periodms;
+        int num_rawmodules;
         char sserial_modes[4][8];
+        rtapi_u8 rawmodule_gtags[HM2_MAX_RAWMODULE];
         int enable_raw;
         char *firmware;
     } config;
@@ -1692,6 +1719,7 @@ typedef struct {
     hm2_outm_t outm;
     hm2_oneshot_t oneshot;
     hm2_periodm_t periodm;
+    hm2_rawmodule_t rawmodule;
 
     hm2_raw_t *raw;
 
@@ -1737,6 +1765,7 @@ hm2_sserial_remote_t *hm2_get_sserial(hostmot2_t **hm2, char *name);
 int hm2_get_bspi(hostmot2_t **hm2, char *name);
 int hm2_get_uart(hostmot2_t **hm2, char *name);
 int hm2_get_pktuart(hostmot2_t **hm2, char *name);
+int hm2_get_rawmodule(hostmot2_t **hm2, char *name);
 
 
 //
@@ -2082,6 +2111,22 @@ void hm2_outm_print_module(hostmot2_t *hm2);
 //void hm2_oneshot_prepare_tram_write(hostmot2_t *hm2);
 //void hm2_oneshot_print_module(hostmot2_t *hm2);
 
+//
+// raw module interface functions
+//
+
+int hm2_rawmodule_parse_md(hostmot2_t *hm2, int md_index);
+void hm2_rawmodule_cleanup(hostmot2_t *hm2);
+void hm2_rawmodule_process_tram_read(hostmot2_t *hm2);
+void hm2_rawmodule_prepare_tram_write(hostmot2_t *hm2);
+void hm2_rawmodule_print_module(hostmot2_t *hm2);
+int hm2_rawmodule_setup(char *name, rtapi_u8 version, rtapi_u8 num_registers, rtapi_u32 instance_stride, rtapi_u32 multiple_registers, hm2_rawmodule_addrinfo_t *addrinfo);
+int hm2_rawmodule_add_tram_read_region(char *name, rtapi_u16 addr, rtapi_u16 size, rtapi_u32 **buffer);
+int hm2_rawmodule_add_tram_write_region(char *name, rtapi_u16 addr, rtapi_u16 size, rtapi_u32 **buffer);
+int hm2_rawmodule_allocate_tram(char* name);
+int hm2_rawmodule_set_read_function(char *name, int (*func)(void *subdata), void *subdata);
+int hm2_rawmodule_set_write_function(char *name, int (*func)(void *subdata), void *subdata);
+int hm2_rawmodule_write(char *name, rtapi_u32 addr, const void *buffer, int size);
 
 //
 // the raw interface lets you peek and poke the hostmot2 instance from HAL
