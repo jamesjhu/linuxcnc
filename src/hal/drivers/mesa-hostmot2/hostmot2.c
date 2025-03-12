@@ -428,7 +428,10 @@ static int hm2_parse_config_string(hostmot2_t *hm2, char *config_string) {
     hm2->config.num_outms = -1;
     hm2->config.num_oneshots = -1;
     hm2->config.num_periodms = -1;
-    for(i=0;i<HM2_MAX_RAWMODULE;i++) hm2->config.num_rawmodules[i]={.gtag=0, .num_instances=-1};
+    for(i=0;i<HM2_MAX_RAWMODULE;i++) {
+        hm2->config.num_rawmodules[i].gtag = 0;
+        hm2->config.num_rawmodules[i].num_instances = -1;
+    }
     hm2->config.enable_raw = 0;
     hm2->config.firmware = NULL;
 
