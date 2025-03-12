@@ -425,6 +425,8 @@ static int hm2_parse_config_string(hostmot2_t *hm2, char *config_string) {
     hm2->config.num_outms = -1;
     hm2->config.num_oneshots = -1;
     hm2->config.num_periodms = -1;
+    hm2->config.num_rawmodules = -1;
+    for(i=0;i<HM2_MAX_RAWMODULE;i++) hm2->config.rawmodule_gtags[i] = 0;
     hm2->config.enable_raw = 0;
     hm2->config.firmware = NULL;
 
@@ -560,6 +562,27 @@ static int hm2_parse_config_string(hostmot2_t *hm2, char *config_string) {
         } else if (strncmp(token, "num_dplls=", 10) == 0) {
             token += 10;
             hm2->config.num_dplls = simple_strtol(token, NULL, 0);
+
+        } else if (strncmp(token, "misc_module_", 12) == 0) {
+            int i;
+            token += 12;
+            i = *token - '0';
+            token += 1;
+            if (i < 0 || i >= HM2_MAX_RAWMODULE || *token != '=') {
+                HM2_ERR("misc_module tag must be in the form "
+                        """misc_module_N="" where N may be 0 to %d\n",
+                        HM2_MAX_RAWMODULE - 1
+                        );
+                goto fail;
+            }
+            hm2->config.rawmodule_gtags[i] = simple_strtol(token, NULL, 0);
+            
+            if (hm2->config.num_rawmodules == -1) {
+                hm2->config.num_rawmodules = 0;
+            }
+            if (i >= hm2->config.num_rawmodules) {
+                hm2->config.num_rawmodules = i + 1;
+            }
 
         } else if (strncmp(token, "enable_raw", 10) == 0) {
             hm2->config.enable_raw = 1;

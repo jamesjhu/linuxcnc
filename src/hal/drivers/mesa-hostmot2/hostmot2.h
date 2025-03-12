@@ -1579,7 +1579,7 @@ typedef struct {
 // raw module access
 //
 
-#define HM2_MAX_RAWMODULE   (16)
+#define HM2_MAX_RAWMODULE   (8)
 
 typedef struct {
     rtapi_u8 gtag;
