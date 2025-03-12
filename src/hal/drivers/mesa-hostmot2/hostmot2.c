@@ -289,15 +289,18 @@ hm2_sserial_remote_t *hm2_get_sserial(hostmot2_t** hm2, char *name){
     }
     return NULL;
 }
-EXPORT_SYMBOL_GPL(hm2_get_rawreg);
-int hm2_get_rawmodule(hostmot2_t** hm2, char *name){
-    struct rtapi_list_head *ptr;
+EXPORT_SYMBOL_GPL(hm2_get_rawmodule);
+int hm2_get_rawmodule(hostmot2_t** hm2, hm2_rawmodule_t **rawmodule, char *name) {
+    struct rtapi_list_head *hm_ptr, *rm_ptr;
     int i;
-    rtapi_list_for_each(ptr, &hm2_list) {
-        *hm2 = rtapi_list_entry(ptr, hostmot2_t, list);
-        if ((*hm2)->rawmodule.num_instances > 0) {
-            for (i = 0; i < (*hm2)->rawmodule.num_instances ; i++) {
-                if (!strcmp((*hm2)->rawmodule.instance[i].name, name)) {return i;}
+    rtapi_list_for_each(hm_ptr, &hm2_list) {
+        *hm2 = rtapi_list_entry(hm_ptr, hostmot2_t, list);
+        rtapi_list_for_each(rm_ptr, &((*hm2)->rawmodules)) {
+            *rawmodule = rtapi_list_entry(rm_ptr, hm2_rawmodule_t, list);
+            if ((*rawmodule)->num_instances > 0) {
+                for (i = 0; i < (*rawmodule)->num_instances ; i++) {
+                    if (!strcmp((*rawmodule)->instance[i].name, name)) {return i;}
+                }
             }
         }
     }
@@ -425,8 +428,7 @@ static int hm2_parse_config_string(hostmot2_t *hm2, char *config_string) {
     hm2->config.num_outms = -1;
     hm2->config.num_oneshots = -1;
     hm2->config.num_periodms = -1;
-    hm2->config.num_rawmodules = -1;
-    for(i=0;i<HM2_MAX_RAWMODULE;i++) hm2->config.rawmodule_gtags[i] = 0;
+    for(i=0;i<HM2_MAX_RAWMODULE;i++) hm2->config.num_rawmodules[i]={.gtag=0, .num_instances=-1};
     hm2->config.enable_raw = 0;
     hm2->config.firmware = NULL;
 
@@ -563,26 +565,26 @@ static int hm2_parse_config_string(hostmot2_t *hm2, char *config_string) {
             token += 10;
             hm2->config.num_dplls = simple_strtol(token, NULL, 0);
 
-        } else if (strncmp(token, "misc_module_", 12) == 0) {
-            int i;
-            token += 12;
-            i = *token - '0';
-            token += 1;
-            if (i < 0 || i >= HM2_MAX_RAWMODULE || *token != '=') {
-                HM2_ERR("misc_module tag must be in the form "
-                        """misc_module_N="" where N may be 0 to %d\n",
-                        HM2_MAX_RAWMODULE - 1
-                        );
+        } else if (strncmp(token, "num_module_", 11) == 0) {
+            int i, gtag;
+            token += 11;
+            gtag = simple_strtol(token, &token, 16);
+            if (i < 0 || i > 255 || *token != '=') {
+                HM2_ERR("num_module tag must be in the form "
+                        """num_module_XX="" where XX may be 00 to FF\n");
                 goto fail;
             }
-            hm2->config.rawmodule_gtags[i] = simple_strtol(token, NULL, 0);
-            
-            if (hm2->config.num_rawmodules == -1) {
-                hm2->config.num_rawmodules = 0;
+            token += 1;
+            for (i = 0; i < HM2_MAX_RAWMODULE; i++) {
+                if (   hm2->config.num_rawmodules[i].gtag == 0
+                    && hm2->config.num_rawmodules[i].num_instances == -1) break;
+                if (i == HM2_MAX_RAWMODULE-1) {
+                    HM2_ERR("num_module_XX limited to %d entries\n", HM2_MAX_RAWMODULE);
+                    goto fail;
+                }
             }
-            if (i >= hm2->config.num_rawmodules) {
-                hm2->config.num_rawmodules = i + 1;
-            }
+            hm2->config.num_rawmodules[i].gtag = gtag;
+            hm2->config.num_rawmodules[i].num_instances = simple_strtol(token, NULL, 0);
 
         } else if (strncmp(token, "enable_raw", 10) == 0) {
             hm2->config.enable_raw = 1;
@@ -626,6 +628,14 @@ static int hm2_parse_config_string(hostmot2_t *hm2, char *config_string) {
     HM2_DBG("    num_bspis=%d\n", hm2->config.num_bspis);
     HM2_DBG("    num_uarts=%d\n", hm2->config.num_uarts);
     HM2_DBG("    num_pktuarts=%d\n", hm2->config.num_pktuarts);
+    for (i = 0; i < HM2_MAX_RAWMODULE; i++) {
+        if (   hm2->config.num_rawmodules[i].gtag == 0
+            && hm2->config.num_rawmodules[i].num_instances == -1) break;
+        HM2_DBG("    num_module_%02X=%d\n",
+                hm2->config.num_rawmodules[i].gtag,
+                hm2->config.num_rawmodules[i].num_instances
+                );
+    }
     HM2_DBG("    enable_raw=%d\n",   hm2->config.enable_raw);
     HM2_DBG("    firmware=%s\n",   hm2->config.firmware ? hm2->config.firmware : "(NULL)");
 
@@ -1015,6 +1025,8 @@ static int hm2_parse_module_descriptors(hostmot2_t *hm2) {
         }
     }
 
+    RTAPI_INIT_LIST_HEAD(&hm2->rawmodules);
+
     // Now look for the other modules. 
     for (md_index = 0; md_index < hm2->num_mds; md_index ++) {
         hm2_module_descriptor_t *md = &hm2->md[md_index];
@@ -1126,7 +1138,7 @@ static int hm2_parse_module_descriptors(hostmot2_t *hm2) {
             default:
                 int i;
                 for (i = 0; i < HM2_MAX_RAWMODULE; i++) {
-                    if (hm2->config.rawmodule_gtags[i] == md->gtag) {
+                    if (hm2->config.num_rawmodules[i].gtag == md->gtag) {
                         md_accepted = hm2_rawmodule_parse_md(hm2, md_index);
                         break;
                     }

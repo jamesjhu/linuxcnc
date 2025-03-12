@@ -1582,10 +1582,6 @@ typedef struct {
 #define HM2_MAX_RAWMODULE   (8)
 
 typedef struct {
-    rtapi_u8 gtag;
-    rtapi_u8 version;
-    rtapi_u8 instances;
-    rtapi_u32 clock_freq;
     rtapi_u16 base_address;
     rtapi_u32 register_stride;
     rtapi_u32 instance_stride;
@@ -1599,6 +1595,12 @@ typedef struct {
 typedef struct {
     int num_instances;
     hm2_rawmodule_instance_t *instance;
+
+    rtapi_u8 gtag;
+    rtapi_u8 version;
+    rtapi_u32 clock_freq;
+
+    struct rtapi_list_head list;
 } hm2_rawmodule_t;
 
 // 
@@ -1656,6 +1658,7 @@ typedef struct {
         int stepgen_width;
         int num_leds;
         int num_sserials;
+        char sserial_modes[4][8];
         int num_bspis;
         int num_uarts;
         int num_pktuarts;
@@ -1667,9 +1670,10 @@ typedef struct {
         int num_outms;
         int num_oneshots;
         int num_periodms;
-        int num_rawmodules;
-        char sserial_modes[4][8];
-        rtapi_u8 rawmodule_gtags[HM2_MAX_RAWMODULE];
+        struct {
+            rtapi_u8 gtag;
+            int num_instances;
+        } num_rawmodules[HM2_MAX_RAWMODULE];
         int enable_raw;
         char *firmware;
     } config;
@@ -1720,7 +1724,7 @@ typedef struct {
     hm2_outm_t outm;
     hm2_oneshot_t oneshot;
     hm2_periodm_t periodm;
-    hm2_rawmodule_t rawmodule;
+    struct rtapi_list_head rawmodules;
 
     hm2_raw_t *raw;
 
@@ -1766,7 +1770,7 @@ hm2_sserial_remote_t *hm2_get_sserial(hostmot2_t **hm2, char *name);
 int hm2_get_bspi(hostmot2_t **hm2, char *name);
 int hm2_get_uart(hostmot2_t **hm2, char *name);
 int hm2_get_pktuart(hostmot2_t **hm2, char *name);
-int hm2_get_rawmodule(hostmot2_t **hm2, char *name);
+int hm2_get_rawmodule(hostmot2_t** hm2, hm2_rawmodule_t **rawmodule, char *name);
 
 
 //
