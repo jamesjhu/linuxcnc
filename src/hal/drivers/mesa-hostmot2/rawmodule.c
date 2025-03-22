@@ -145,9 +145,7 @@ fail0:
 }
 
 EXPORT_SYMBOL_GPL(hm2_rawmodule_setup);
-int hm2_rawmodule_setup(char *name, rtapi_u8 version, rtapi_u8 num_registers,
-                        rtapi_u32 instance_stride, rtapi_u32 multiple_registers,
-                        hm2_rawmodule_addrinfo_t *addrinfo)
+int hm2_rawmodule_setup(char *name, hm2_rawmodule_addrinfo_t *addrinfo)
 {
     hostmot2_t *hm2;
     hm2_rawmodule_t *rawmodule;
@@ -156,11 +154,6 @@ int hm2_rawmodule_setup(char *name, rtapi_u8 version, rtapi_u8 num_registers,
     i = hm2_get_rawmodule(&hm2, &rawmodule, name);
     if (i < 0) {
         HM2_ERR_NO_LL("Can not find module instance %s.\n", name);
-        return -EINVAL;
-    }
-
-    if (!hm2_md_is_consistent_or_complain(hm2, i, version, num_registers, instance_stride, multiple_registers)) {
-        HM2_ERR("inconsistent Module Descriptor!\n");
         return -EINVAL;
     }
 

@@ -29,7 +29,7 @@ typedef struct {
 
 RTAPI_BEGIN_DECLS
 
-int hm2_rawmodule_setup(char *name, rtapi_u8 version, rtapi_u8 num_registers, rtapi_u32 instance_stride, rtapi_u32 multiple_registers, hm2_rawmodule_addrinfo_t *addrinfo);
+int hm2_rawmodule_setup(char *name, hm2_rawmodule_addrinfo_t *addrinfo);
 int hm2_rawmodule_add_tram_read_region(char *name, rtapi_u16 addr, rtapi_u16 size, rtapi_u32 **buffer);
 int hm2_rawmodule_add_tram_write_region(char *name, rtapi_u16 addr, rtapi_u16 size, rtapi_u32 **buffer);
 int hm2_rawmodule_allocate_tram(char* name);
